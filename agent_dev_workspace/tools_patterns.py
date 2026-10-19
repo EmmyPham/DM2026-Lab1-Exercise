@@ -47,7 +47,7 @@ def make_tools(session):
 
         # Step 1: Per-category local DTM with English stopwords removed
         texts = cat_df["text"].fillna("").tolist()
-        vectorizer = CountVectorizer(stop_words="english")
+        vectorizer = CountVectorizer(stop_words="english", strip_accents="ascii")
         try:
             dtm = vectorizer.fit_transform(texts).toarray()
             feature_names = np.array(vectorizer.get_feature_names_out())
@@ -152,6 +152,8 @@ def make_tools(session):
 
             patterns = []
             if pami_df is not None and not pami_df.empty:
+                # Ensure patterns are sorted by support descending
+                pami_df = pami_df.sort_values(by="Support", ascending=False)
                 for _, row in pami_df.iterrows():
                     pattern_str = str(row["Patterns"])
                     supp = int(row["Support"])

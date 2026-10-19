@@ -1,6 +1,7 @@
 """Tests for mine_patterns_tool in tools_patterns.py against TEST_FIXTURE.md known answers #17 and #20."""
 
 import pytest
+import pandas as pd
 from agent_pipeline.session_state import SessionState
 from agent_pipeline.workspace_loader import load_workspace_tools
 from tools_patterns import make_tools
@@ -120,3 +121,26 @@ def test_mine_patterns_topk_and_maxfpgrowth_known_answer_20():
             "min_sup": min_sup
         })
         assert res_max_catB["patterns"] == []
+
+
+def test_mine_patterns_accented_character():
+    """Test mine_patterns_tool when documents contain non-ASCII accented characters."""
+    session = SessionState()
+    # Create enough repeating terms so term_frequency filtering percentile range keeps them
+    session.dataframe = pd.DataFrame({
+        "text": ["résumé café tea milk"] * 10,
+        "category_name": ["catA"] * 10
+    })
+
+    pattern_tools = make_tools(session)
+    mine_patterns_tool = next(t for t in pattern_tools if t.name == "mine_patterns_tool")
+
+    for fmt in ["tfidf", "term_frequency"]:
+        res = mine_patterns_tool.invoke({
+            "category_name": "catA",
+            "filtering_method": fmt,
+            "algorithm": "fpgrowth",
+            "min_sup": 1
+        })
+        assert "error" not in res
+        assert res["total_patterns"] > 0
